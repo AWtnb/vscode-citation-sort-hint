@@ -4,7 +4,7 @@
   "description": "reduce unnecessary information for organizing reference list",
   "publisher": "awtnb",
   "repository": {
-    "url": ""
+    "url": "https://github.com/AWtnb/vscode-citation-sort-hint"
   },
   "version": "0.0.1",
   "engines": {
