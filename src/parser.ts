@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-const newRange = (line: number, startIdx: number, endIdx: number): vscode.Range => {
+const rangeOnEditor = (line: number, startIdx: number, endIdx: number): vscode.Range => {
   const start = new vscode.Position(line, startIdx);
   const end = new vscode.Position(line, endIdx);
   return new vscode.Range(start, end);
@@ -17,6 +17,10 @@ const isInitial = (s: string): boolean => {
     }
   }
   return false;
+};
+
+const isNumberStr = (s: string): boolean => {
+  return !isNaN(Number(s));
 };
 
 class Token {
@@ -42,38 +46,38 @@ class Token {
     if (!this.isYear) {
       return null;
     }
-    if (this.content.charAt(0).match(/\d/)) {
+    if (isNumberStr(this.content.charAt(0))) {
       return null;
     }
     let prefixLen = 0;
-    for (let i = 0; i < this.content.length; i++) {
-      if (this.content.charAt(i).match(/\d/)) {
+    for (let i = 0; i < this.length; i++) {
+      if (isNumberStr(this.content.charAt(i))) {
         break;
       }
       prefixLen += 1;
     }
-    return newRange(this.lineNum, this.offset, this.offset + prefixLen);
+    return rangeOnEditor(this.lineNum, this.offset, this.offset + prefixLen);
   }
 
   getSuffix(): vscode.Range | null {
     if (!this.isYear) {
       return null;
     }
-    if (this.content.charAt(this.content.length - 1).match(/\d/)) {
+    if (isNumberStr(this.content.charAt(this.length - 1))) {
       return null;
     }
     let suffixLen = 0;
-    for (let i = 1; i <= this.content.length; i++) {
-      if (this.content.charAt(this.content.length - i).match(/\d/)) {
+    for (let i = 1; i <= this.length; i++) {
+      if (isNumberStr(this.content.charAt(this.length - i))) {
         break;
       }
       suffixLen += 1;
     }
-    return newRange(this.lineNum, this.offset + this.length - suffixLen, this.offset + this.length);
+    return rangeOnEditor(this.lineNum, this.offset + this.length - suffixLen, this.offset + this.length);
   }
 
   getRange(): vscode.Range {
-    return newRange(this.lineNum, this.offset, this.offset + this.length);
+    return rangeOnEditor(this.lineNum, this.offset, this.offset + this.length);
   }
 }
 
