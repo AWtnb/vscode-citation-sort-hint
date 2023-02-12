@@ -6,7 +6,7 @@ const isASCII = (s: string): boolean => {
   return Boolean(s.match(/[\x00-\x7f]/));
 };
 
-class Noise {
+class SortNoise {
   readonly deco: vscode.TextEditorDecorationType;
   applied: boolean;
 
@@ -29,7 +29,7 @@ class Noise {
     return found;
   }
 
-  clearDeco(editor: vscode.TextEditor) {
+  resetBlur(editor: vscode.TextEditor) {
     editor.setDecorations(this.deco, []);
     this.applied = false;
   }
@@ -40,28 +40,38 @@ class Noise {
   }
 }
 
-const SortNoise = new Noise(0.4);
-
 export function activate(context: vscode.ExtensionContext) {
+  const sn = new SortNoise(0.4);
+
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand("citation-sort-hint.focus", (editor: vscode.TextEditor) => {
-      SortNoise.blur(editor);
+      if (sn.applied) {
+        sn.resetBlur(editor);
+      } else {
+        sn.blur(editor);
+      }
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerTextEditorCommand("citation-sort-hint.clear", (editor: vscode.TextEditor) => {
-      SortNoise.clearDeco(editor);
+    vscode.commands.registerTextEditorCommand("citation-sort-hint.reset", (editor: vscode.TextEditor) => {
+      sn.resetBlur(editor);
     })
   );
-}
 
-vscode.workspace.onDidChangeTextDocument(() => {
-  if (SortNoise.applied) {
-    const editor = vscode.window.activeTextEditor;
-    if (editor) {
-      SortNoise.blur(editor);
+  vscode.window.onDidChangeActiveTextEditor(() => {
+    if (sn.applied) {
+      sn.applied = false;
     }
-  }
-});
+  });
+
+  vscode.workspace.onDidChangeTextDocument(() => {
+    if (sn.applied) {
+      const editor = vscode.window.activeTextEditor;
+      if (editor) {
+        sn.blur(editor);
+      }
+    }
+  });
+}
 
 export function deactivate() {}
