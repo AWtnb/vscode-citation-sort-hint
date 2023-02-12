@@ -11,7 +11,7 @@
   ],
   "activationEvents": [
     "onCommand:citation-sort-hint.focus",
-    "onCommand:citation-sort-hint.clear"
+    "onCommand:citation-sort-hint.reset"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -21,8 +21,8 @@
         "title": "citation-sort-hint: focus"
       },
       {
-        "command": "citation-sort-hint.clear",
-        "title": "citation-sort-hint: clear"
+        "command": "citation-sort-hint.reset",
+        "title": "citation-sort-hint: reset"
       }
     ]
   },
