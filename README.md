@@ -10,7 +10,7 @@ For those who need to sort citation list manually.
 
 + Lines that do not start with ASCII will be skipped.
 + The line will be split by spaces, and a blur will be applied to all elements except those listed below.
-    + Familyname
+    + Surname
         + Elements that has abbreviation (_i.e._ single capital ends with `.`) either before or after.
     + Published year
         + Elements with four consecutive numbers
