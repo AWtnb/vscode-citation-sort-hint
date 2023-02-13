@@ -11,82 +11,82 @@ const hasSingleYearDigits = (s: string): boolean => {
 };
 
 const isInitial = (s: string): boolean => {
-  if (s.endsWith(".") || s.endsWith(".,")) {
-    if (s.charAt(0).match(/[A-Z]/)) {
-      return true;
-    }
-  }
-  return false;
+  const reg = new RegExp("^[A-Z].,?$");
+  return reg.test(s);
 };
 
-const isNumberStr = (s: string): boolean => {
-  return !isNaN(Number(s));
+const isDigit = (s: string): boolean => {
+  const reg = new RegExp("\\d");
+  return reg.test(s);
+};
+
+const isLower = (s: string): boolean => {
+  return s.toLowerCase() == s;
 };
 
 class Token {
   readonly isAbbreviation: boolean;
   readonly isYear: boolean;
   readonly isNormal: boolean;
+  readonly punctuations: string[];
+  readonly isPunctuation: boolean;
   readonly content: string;
-  readonly length: number;
-  readonly lineNum: number;
-  readonly offset: number;
+  private readonly len: number;
+  private readonly offset: number;
 
   constructor(s: string, lineNum: number, offset: number) {
     this.content = s;
     this.isYear = hasSingleYearDigits(this.content);
     this.isAbbreviation = !this.isYear && isInitial(this.content);
     this.isNormal = !this.isAbbreviation && !this.isYear;
-    this.length = this.content.length;
-    this.lineNum = lineNum;
+    this.punctuations = [",", ".", "&", ":", ";"];
+    this.isPunctuation = this.punctuations.includes(this.content);
+    this.len = this.content.length;
     this.offset = offset;
   }
 
-  getPrefix(): vscode.Range | null {
+  private getPrefixLen(): number {
     if (!this.isYear) {
-      return null;
+      return 0;
     }
-    if (isNumberStr(this.content.charAt(0))) {
-      return null;
-    }
-    let prefixLen = 0;
-    for (let i = 0; i < this.length; i++) {
-      if (isNumberStr(this.content.charAt(i))) {
-        break;
+    for (let i = 0; i < this.len; i++) {
+      if (isDigit(this.content.charAt(i))) {
+        return i;
       }
-      prefixLen += 1;
     }
-    return rangeOnEditor(this.lineNum, this.offset, this.offset + prefixLen);
+    return 0;
   }
 
-  getSuffix(): vscode.Range | null {
-    if (!this.isYear) {
-      return null;
+  private getFocusLength(): number {
+    if (this.isYear) {
+      return 4;
     }
-    if (isNumberStr(this.content.charAt(this.length - 1))) {
-      return null;
+    if (this.isNormal && this.punctuations.includes(this.content.charAt(this.len - 1))) {
+      return this.len - 1;
     }
-    let suffixLen = 0;
-    for (let i = 1; i <= this.length; i++) {
-      if (isNumberStr(this.content.charAt(this.length - i))) {
-        break;
-      }
-      suffixLen += 1;
-    }
-    return rangeOnEditor(this.lineNum, this.offset + this.length - suffixLen, this.offset + this.length);
+    return this.len;
   }
 
-  getRange(): vscode.Range {
-    return rangeOnEditor(this.lineNum, this.offset, this.offset + this.length);
+  getOffset(): number {
+    if (this.isYear) {
+      return this.offset + this.getPrefixLen();
+    }
+    return this.offset;
+  }
+
+  getEnd(): number {
+    return this.offset + this.getPrefixLen() + this.getFocusLength();
   }
 }
 
 export class Entry {
   readonly lineText: string;
+  readonly lineNum: number;
   readonly tokens: Token[];
 
   constructor(line: vscode.TextLine) {
     this.lineText = line.text;
+    this.lineNum = line.lineNumber;
     let offset = 0;
     this.tokens = this.lineText.split(" ").map((elem: string) => {
       const token = new Token(elem, line.lineNumber, offset);
@@ -95,68 +95,43 @@ export class Entry {
     });
   }
 
-  private getAbbreviationRanges(): vscode.Range[] {
-    return this.tokens
-      .filter((token) => token.isAbbreviation)
-      .map((abr) => {
-        return abr.getRange();
-      });
-  }
-
-  private getNormalRanges(): vscode.Range[] {
-    return this.tokens
-      .filter((token, idx) => {
-        if (token.isNormal) {
-          if (token.content == "&") {
-            return true;
-          }
-          if (0 < idx && idx < this.tokens.length - 1) {
-            return !this.tokens[idx - 1].isAbbreviation && !this.tokens[idx + 1].isAbbreviation;
-          }
-          if (idx == this.tokens.length - 1) {
-            return !this.tokens[idx - 1].isAbbreviation;
-          }
-          return false;
-        }
+  private getFocusTargets(): Token[] {
+    return this.tokens.filter((token, idx) => {
+      if (token.isYear) {
+        return true;
+      }
+      if (token.isAbbreviation || token.isPunctuation || token.content.endsWith(".") || isLower(token.content.charAt(0))) {
         return false;
-      })
-      .map((nrm) => {
-        return nrm.getRange();
-      });
-  }
-
-  private getYearPrefixRanges(): vscode.Range[] {
-    const ranges: vscode.Range[] = [];
-    this.tokens
-      .filter((token) => token.isYear)
-      .forEach((yr) => {
-        const pre = yr.getPrefix();
-        if (pre) {
-          ranges.push(pre);
-        }
-      });
-    return ranges;
-  }
-
-  private getYearSuffixfixRanges(): vscode.Range[] {
-    const ranges: vscode.Range[] = [];
-    this.tokens
-      .filter((token) => token.isYear)
-      .forEach((yr) => {
-        const suf = yr.getSuffix();
-        if (suf) {
-          ranges.push(suf);
-        }
-      });
-    return ranges;
+      }
+      if (idx == 0) {
+        return this.tokens[idx + 1].isAbbreviation;
+      }
+      if (idx == this.tokens.length - 1) {
+        return this.tokens[idx - 1].isAbbreviation;
+      }
+      return this.tokens[idx - 1].isAbbreviation || this.tokens[idx + 1].isAbbreviation;
+    });
   }
 
   getNoiseRanges(): vscode.Range[] {
     const ranges: vscode.Range[] = [];
-    this.getAbbreviationRanges().forEach((abr) => ranges.push(abr));
-    this.getNormalRanges().forEach((nrm) => ranges.push(nrm));
-    this.getYearPrefixRanges().forEach((yp) => ranges.push(yp));
-    this.getYearSuffixfixRanges().forEach((ys) => ranges.push(ys));
+    const focus = this.getFocusTargets();
+    const head = new Token("", this.lineNum, 0);
+    focus.unshift(head);
+    const tail = new Token("", this.lineNum, this.lineText.length);
+    focus.push(tail);
+    focus.forEach((token, idx) => {
+      if (idx < 1) {
+        return;
+      }
+      const prev = focus[idx - 1];
+      const start = prev.getEnd();
+      const end = token.getOffset();
+      if (start < end) {
+        const rangeToDim = rangeOnEditor(this.lineNum, start, end);
+        ranges.push(rangeToDim);
+      }
+    });
     return ranges;
   }
 }
