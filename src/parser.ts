@@ -7,7 +7,7 @@ const rangeOnEditor = (line: number, startIdx: number, endIdx: number): vscode.R
 };
 
 const hasSingleYearDigits = (s: string): boolean => {
-  return s.length - s.replace(/\d/g, "").length == 4;
+  return s.length - s.replace(/\d/g, "").length == 4 && /\d{4}/.test(s);
 };
 
 const isInitial = (s: string): boolean => {
