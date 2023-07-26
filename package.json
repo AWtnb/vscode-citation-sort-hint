@@ -30,11 +30,13 @@
     "commands": [
       {
         "command": "citation-sort-hint.focus",
-        "title": "citation-sort-hint: focus"
+        "title": "focus",
+        "category": "citation-sort-hint"
       },
       {
         "command": "citation-sort-hint.reset",
-        "title": "citation-sort-hint: reset"
+        "title": "reset",
+        "category": "citation-sort-hint"
       }
     ]
   },
