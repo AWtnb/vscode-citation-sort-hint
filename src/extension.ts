@@ -6,9 +6,9 @@ const isASCII = (s: string): boolean => {
   return Boolean(s.match(/[\x00-\x7f]/));
 };
 
-class SortNoise {
+class Spotter {
   readonly deco: vscode.TextEditorDecorationType;
-  applied: boolean;
+  private applied: boolean;
 
   constructor(opacity: number) {
     this.deco = vscode.window.createTextEditorDecorationType({
@@ -29,46 +29,51 @@ class SortNoise {
     return found;
   }
 
-  resetBlur(editor: vscode.TextEditor) {
+  isApplied(): boolean {
+    return this.applied;
+  }
+
+  reset(editor: vscode.TextEditor) {
     editor.setDecorations(this.deco, []);
     this.applied = false;
   }
 
-  blur(editor: vscode.TextEditor) {
+  apply(editor: vscode.TextEditor) {
     editor.setDecorations(this.deco, this.getRanges(editor));
     this.applied = true;
   }
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  const sn = new SortNoise(0.4);
+  const SPOTTER = new Spotter(0.4);
 
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand("citation-sort-hint.focus", (editor: vscode.TextEditor) => {
-      if (sn.applied) {
-        sn.resetBlur(editor);
+      if (SPOTTER.isApplied()) {
+        SPOTTER.reset(editor);
       } else {
-        sn.blur(editor);
+        SPOTTER.apply(editor);
       }
     })
   );
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand("citation-sort-hint.reset", (editor: vscode.TextEditor) => {
-      sn.resetBlur(editor);
+      SPOTTER.reset(editor);
     })
   );
 
-  vscode.window.onDidChangeActiveTextEditor(() => {
-    if (sn.applied) {
-      sn.applied = false;
+  vscode.window.onDidChangeActiveTextEditor((editor) => {
+    if (SPOTTER.isApplied() && editor) {
+      SPOTTER.reset(editor);
     }
   });
 
+  // `vscode.window.onDidChangeActiveTextEditor` cannot update decoration on realtime.
   vscode.workspace.onDidChangeTextDocument(() => {
-    if (sn.applied) {
+    if (SPOTTER.isApplied()) {
       const editor = vscode.window.activeTextEditor;
       if (editor) {
-        sn.blur(editor);
+        SPOTTER.apply(editor);
       }
     }
   });
