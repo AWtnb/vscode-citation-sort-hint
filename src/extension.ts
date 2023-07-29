@@ -1,10 +1,6 @@
 import * as vscode from "vscode";
 
-import { Entry } from "./parser";
-
-const isASCII = (s: string): boolean => {
-  return Boolean(s.match(/[\x00-\x7f]/));
-};
+import { Entry } from "./entry";
 
 class Spotter {
   readonly deco: vscode.TextEditorDecorationType;
@@ -21,10 +17,8 @@ class Spotter {
     const found: vscode.Range[] = [];
     for (let i = 0; i < editor.document.lineCount; i++) {
       const line = editor.document.lineAt(i);
-      if (isASCII(line.text.trimStart().charAt(0))) {
-        const ent = new Entry(line);
-        ent.getNoiseRanges().forEach((n) => found.push(n));
-      }
+      const ent = new Entry(line);
+      ent.getInterFocusRanges().forEach((n) => found.push(n));
     }
     return found;
   }
