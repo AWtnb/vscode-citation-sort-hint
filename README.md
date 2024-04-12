@@ -6,16 +6,13 @@ For those who need to sort citation list manually.
 
 ![img](./images/demo.png)
 
-`citation-sort-hint.focus` reduces unnecessary information for organizing reference list.
+`citation-sort-hint.focus` highlights following patterns by bluring unnecessary information.
 
-+ Lines that do not start with ASCII will be skipped.
-+ The line will be split by spaces, and dim all elements except for:
-    + Surname
-        + Elements that follows or precedes abbreviation (_i.e._ single capital ends with `.`).
-    + Published year
-        + Elements that contains 4 consecutive numbers.
-+ Context is not considered. If above conditions are met, non-personal names or 4-digit number other than publshed year will also be matched.
-+ In order to reset dimming, run `citation-sort-hint.reset` command.
+- Surname (first-letter-capitalized words adjacent to abbreviation) such as:
+    - `Shakespeare` in `W. Shakespeare`
+    - `Shakespeare` in `Shakespeare, W.`
+- Year (4 consecutive digits)
+
 
 ---
 

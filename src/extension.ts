@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
 
-import { Entry } from "./entry";
+import { Line } from "./line";
 
 class Spotter {
-  readonly deco: vscode.TextEditorDecorationType;
+  private readonly _deco: vscode.TextEditorDecorationType;
   private applied: boolean;
 
   constructor(opacity: number) {
-    this.deco = vscode.window.createTextEditorDecorationType({
+    this._deco = vscode.window.createTextEditorDecorationType({
       opacity: `${opacity} !important`,
     });
     this.applied = false;
@@ -16,9 +16,10 @@ class Spotter {
   private getRanges(editor: vscode.TextEditor): vscode.Range[] {
     const found: vscode.Range[] = [];
     for (let i = 0; i < editor.document.lineCount; i++) {
-      const line = editor.document.lineAt(i);
-      const ent = new Entry(line);
-      ent.getInterFocusRanges().forEach((n) => found.push(n));
+      const line = new Line(editor.document.lineAt(i));
+      line.getRangesToBlur().forEach((r) => {
+        found.push(r);
+      });
     }
     return found;
   }
@@ -28,12 +29,12 @@ class Spotter {
   }
 
   reset(editor: vscode.TextEditor) {
-    editor.setDecorations(this.deco, []);
+    editor.setDecorations(this._deco, []);
     this.applied = false;
   }
 
   apply(editor: vscode.TextEditor) {
-    editor.setDecorations(this.deco, this.getRanges(editor));
+    editor.setDecorations(this._deco, this.getRanges(editor));
     this.applied = true;
   }
 }
@@ -57,8 +58,8 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.window.onDidChangeActiveTextEditor((editor) => {
-    if (SPOTTER.isApplied() && editor) {
-      SPOTTER.reset(editor);
+    if (editor && SPOTTER.isApplied()) {
+      SPOTTER.apply(editor);
     }
   });
 
